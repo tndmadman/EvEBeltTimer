@@ -35,11 +35,9 @@ public class App {
         root.setOpaque(false);
         frame.setContentPane(root);
 
-        // Top controls
         JPanel top = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 2));
         top.setOpaque(false);
-        
-        // Belt count dropdown
+
         beltCountDropdown = new JComboBox<>();
         for (int i = 1; i <= 20; i++) beltCountDropdown.addItem(i);
         beltCountDropdown.setSelectedItem(config.beltCount);
@@ -47,56 +45,54 @@ public class App {
             config.beltCount = (Integer) beltCountDropdown.getSelectedItem();
             rebuildBelts(); saveConfig();
         });
-        top.add(new JLabel("Belts:")); top.add(beltCountDropdown);
-        
-        // Opacity slider
+        top.add(new JLabel("Belts:"));
+        top.add(beltCountDropdown);
+
         opacitySlider = new JSlider(15, 100, (int)(config.opacity * 100));
         opacitySlider.setPreferredSize(new Dimension(100, 16));
         opacitySlider.addChangeListener(e -> {
-            config.opacity = opacitySlider.getValue()/100f;
+            config.opacity = opacitySlider.getValue() / 100f;
             frame.setOpacity(config.opacity);
             saveConfig();
         });
-        top.add(new JLabel("Opacity:")); top.add(opacitySlider);
-        
-        // Add top drag handle
+        top.add(new JLabel("Opacity:"));
+        top.add(opacitySlider);
+
         JPanel topDrag = createDragHandle();
-        top.add(Box.createHorizontalGlue()); top.add(topDrag);
-        
+        top.add(Box.createHorizontalGlue());
+        top.add(topDrag);
+
         root.add(top, BorderLayout.NORTH);
 
-        // Center belts
         beltsPanel = new JPanel();
         beltsPanel.setOpaque(false);
         beltsPanel.setLayout(new BoxLayout(beltsPanel, BoxLayout.Y_AXIS));
         JScrollPane scroll = new JScrollPane(beltsPanel,
             JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
             JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-        scroll.setOpaque(false); scroll.getViewport().setOpaque(false);
+        scroll.setOpaque(false);
+        scroll.getViewport().setOpaque(false);
         scroll.setBorder(null);
         root.add(scroll, BorderLayout.CENTER);
+
         rebuildBelts();
 
-        // Bottom panel
         JPanel bottom = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 2));
         bottom.setOpaque(false);
 
-        // Close button
         JButton close = new JButton("Close");
         close.addActionListener(e -> System.exit(0));
         bottom.add(close);
 
-        // Bottom drag handle replaces Next Belt
         JPanel bottomDrag = createDragHandle();
         bottom.add(bottomDrag);
 
-        // Resize handle on far right
         JPanel resize = createResizeHandle();
-        bottom.add(Box.createHorizontalGlue()); bottom.add(resize);
+        bottom.add(Box.createHorizontalGlue());
+        bottom.add(resize);
 
         root.add(bottom, BorderLayout.SOUTH);
 
-        // Finalize
         frame.setSize(config.width, config.height);
         frame.setLocation(config.x, config.y);
         frame.setOpacity(config.opacity);
@@ -111,14 +107,17 @@ public class App {
         dragHandle.addMouseListener(new MouseAdapter() {
             public void mousePressed(MouseEvent e) {
                 Point p = e.getLocationOnScreen();
-                offset.x = p.x - frame.getX(); offset.y = p.y - frame.getY();
+                offset.x = p.x - frame.getX();
+                offset.y = p.y - frame.getY();
             }
         });
         dragHandle.addMouseMotionListener(new MouseMotionAdapter() {
             public void mouseDragged(MouseEvent e) {
                 Point p = e.getLocationOnScreen();
                 frame.setLocation(p.x - offset.x, p.y - offset.y);
-                config.x = frame.getX(); config.y = frame.getY(); saveConfig();
+                config.x = frame.getX();
+                config.y = frame.getY();
+                saveConfig();
             }
         });
         return dragHandle;
@@ -129,7 +128,8 @@ public class App {
         resize.setPreferredSize(new Dimension(16, 16));
         resize.setBackground(new Color(150,150,150));
         resize.setCursor(Cursor.getPredefinedCursor(Cursor.SE_RESIZE_CURSOR));
-        final Point start = new Point(); final Rectangle bounds = new Rectangle();
+        final Point start = new Point();
+        final Rectangle bounds = new Rectangle();
         resize.addMouseListener(new MouseAdapter() {
             public void mousePressed(MouseEvent e) {
                 start.setLocation(e.getXOnScreen(), e.getYOnScreen());
@@ -143,7 +143,9 @@ public class App {
                 frame.setBounds(bounds.x, bounds.y,
                     Math.max(200, bounds.width + dx),
                     Math.max(100, bounds.height + dy));
-                config.width = frame.getWidth(); config.height = frame.getHeight(); saveConfig();
+                config.width = frame.getWidth();
+                config.height = frame.getHeight();
+                saveConfig();
             }
         });
         return resize;
@@ -152,40 +154,52 @@ public class App {
     private void rebuildBelts() {
         beltsPanel.removeAll();
         for (int i = 0; i < config.beltCount; i++) {
-            BeltEntryPanel p = new BeltEntryPanel();
+            BeltEntryPanel p = new BeltEntryPanel(i);
             p.setMaximumSize(new Dimension(Integer.MAX_VALUE, 24));
             beltsPanel.add(p);
         }
-        beltsPanel.revalidate(); beltsPanel.repaint();
+        beltsPanel.revalidate();
+        beltsPanel.repaint();
     }
 
     private void loadConfig() {
-        config = new Config(); Properties props = new Properties();
-        if (Files.exists(CONFIG_PATH)) try (InputStream in = Files.newInputStream(CONFIG_PATH)) {
-            props.load(in);
-            config.x = Integer.parseInt(props.getProperty("x",""+config.x));
-            config.y = Integer.parseInt(props.getProperty("y",""+config.y));
-            config.width = Integer.parseInt(props.getProperty("width",""+config.width));
-            config.height = Integer.parseInt(props.getProperty("height",""+config.height));
-            config.beltCount = Integer.parseInt(props.getProperty("beltCount",""+config.beltCount));
-            config.opacity = Float.parseFloat(props.getProperty("opacity",""+config.opacity));
-        } catch (IOException e) { e.printStackTrace(); }
+        config = new Config();
+        Properties props = new Properties();
+        if (Files.exists(CONFIG_PATH)) {
+            try (InputStream in = Files.newInputStream(CONFIG_PATH)) {
+                props.load(in);
+                config.x = Integer.parseInt(props.getProperty("x", "" + config.x));
+                config.y = Integer.parseInt(props.getProperty("y", "" + config.y));
+                config.width = Integer.parseInt(props.getProperty("width", "" + config.width));
+                config.height = Integer.parseInt(props.getProperty("height", "" + config.height));
+                config.beltCount = Integer.parseInt(props.getProperty("beltCount", "" + config.beltCount));
+                config.opacity = Float.parseFloat(props.getProperty("opacity", "" + config.opacity));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     private void saveConfig() {
-        try { Properties p = new Properties();
-            p.setProperty("x",""+config.x);
-            p.setProperty("y",""+config.y);
-            p.setProperty("width",""+config.width);
-            p.setProperty("height",""+config.height);
-            p.setProperty("beltCount",""+config.beltCount);
-            p.setProperty("opacity",""+config.opacity);
-            try (OutputStream out = Files.newOutputStream(CONFIG_PATH)) { p.store(out,null); }
-        } catch (IOException e) { e.printStackTrace(); }
+        try {
+            Properties p = new Properties();
+            p.setProperty("x", "" + config.x);
+            p.setProperty("y", "" + config.y);
+            p.setProperty("width", "" + config.width);
+            p.setProperty("height", "" + config.height);
+            p.setProperty("beltCount", "" + config.beltCount);
+            p.setProperty("opacity", "" + config.opacity);
+            try (OutputStream out = Files.newOutputStream(CONFIG_PATH)) {
+                p.store(out, null);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     private static class Config {
-        int x=100, y=100, width=400, height=200;
-        int beltCount=5; float opacity=0.85f;
+        int x = 100, y = 100, width = 400, height = 200;
+        int beltCount = 5;
+        float opacity = 0.85f;
     }
 }
