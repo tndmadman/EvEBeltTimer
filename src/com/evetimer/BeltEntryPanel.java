@@ -2,132 +2,126 @@ package com.evetimer;
 
 import javax.swing.*;
 import java.awt.*;
-import java.io.*;
-import java.time.Duration;
-import java.time.Instant;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 
-@SuppressWarnings("serial")
-public class BeltEntryPanel extends JPanel implements Serializable {
-    private static final long serialVersionUID = 1L;
-
-    private final int beltIndex;
+public class BeltEntryPanel extends JPanel {
+    private final JLabel beltLabel;
     private final JLabel timerLabel;
-    private final JButton resetBtn;
-    private final JButton killBtn;
-    private final JLabel killCountLabel;
-    private Instant startTime;
-    private boolean selected = false;
-    private int killCount = 0;
+    private final JButton resetTimerBtn;
+    private final JButton killCountBtn;
 
-    public BeltEntryPanel(int beltIndex) {
-        this.beltIndex = beltIndex;
+    private int killCount;
+    private int elapsedSeconds;
+    private Timer timer;
+
+    // Time thresholds for color coding (seconds)
+    private static final int RED_THRESHOLD = 15 * 60;
+    private static final int YELLOW_THRESHOLD = 20 * 60;
+    private static final int GREEN_THRESHOLD = 25 * 60;
+
+    public BeltEntryPanel(String beltName, int initialKillCount) {
+        this.killCount = initialKillCount;
+        this.elapsedSeconds = 0;
 
         setOpaque(false);
-        setLayout(new BorderLayout());
+        setLayout(new FlowLayout(FlowLayout.LEFT, 8, 2));
+        setMaximumSize(new Dimension(Integer.MAX_VALUE, 28));
 
-        timerLabel = new JLabel("00:00:00");
-        timerLabel.setForeground(Color.RED);
+        beltLabel = new JLabel(beltName);
+        beltLabel.setPreferredSize(new Dimension(60, 20));
+        add(beltLabel);
 
-        killCountLabel = new JLabel("Kills: 0");
-        killCountLabel.setForeground(Color.WHITE);
+        timerLabel = new JLabel(formatTime(elapsedSeconds));
+        timerLabel.setPreferredSize(new Dimension(70, 20));
+        add(timerLabel);
 
-        resetBtn = new JButton("Reset");
-        resetBtn.setMargin(new Insets(2, 4, 2, 4));
+        resetTimerBtn = new JButton("Reset Timer");
+        resetTimerBtn.setMargin(new Insets(2, 5, 2, 5));
+        add(resetTimerBtn);
 
-        killBtn = new JButton("+1 Kill");
-        killBtn.setMargin(new Insets(2, 4, 2, 4));
+        killCountBtn = new JButton("Kills: " + killCount);
+        killCountBtn.setMargin(new Insets(2, 5, 2, 5));
+        add(killCountBtn);
 
-        JPanel leftPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 2));
-        leftPanel.setOpaque(false);
-        leftPanel.add(timerLabel);
+        // Timer updates every second
+        timer = new Timer(1000, e -> {
+            elapsedSeconds++;
+            updateTimerLabel();
+        });
+        timer.start();
 
-        JPanel rightPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 2));
-        rightPanel.setOpaque(false);
-        rightPanel.add(killCountLabel);
-        rightPanel.add(killBtn);
-        rightPanel.add(resetBtn);
-
-        add(leftPanel, BorderLayout.WEST);
-        add(rightPanel, BorderLayout.EAST);
-
-        startTime = Instant.now();
-        new Timer(1000, e -> updateTimer()).start();
-
-        resetBtn.addActionListener(e -> {
-            startTime = Instant.now();
-            updateTimer();
+        // Reset timer button action
+        resetTimerBtn.addActionListener(e -> {
+            resetTimer();
+            if (timerResetAction != null) timerResetAction.actionPerformed(e);
         });
 
-        killBtn.addActionListener(e -> {
+        // Kill count button action
+        killCountBtn.addActionListener(e -> {
             killCount++;
-            updateKillCount();
-            saveKillCount();
+            updateKillCountButton();
+            if (killCountAction != null) killCountAction.actionPerformed(e);
         });
 
-        loadKillCount();
-        setSelected(false);
+        updateTimerLabel();
+        updateKillCountButton();
     }
 
-    @Override
-    protected void paintComponent(Graphics g) {
-        Graphics2D g2 = (Graphics2D) g.create();
-        g2.setComposite(AlphaComposite.Clear);
-        g2.fillRect(0, 0, getWidth(), getHeight());
-        g2.dispose();
-        super.paintComponent(g);
-    }
-
-    public void setSelected(boolean selected) {
-        this.selected = selected;
-        if (selected) {
-            setBackground(new Color(0, 120, 215, 100));
+    private void updateTimerLabel() {
+        timerLabel.setText(formatTime(elapsedSeconds));
+        // Color coding based on elapsed time
+        if (elapsedSeconds >= GREEN_THRESHOLD) {
+            timerLabel.setForeground(Color.GREEN.darker());
+        } else if (elapsedSeconds >= YELLOW_THRESHOLD) {
+            timerLabel.setForeground(Color.ORANGE.darker());
+        } else if (elapsedSeconds >= RED_THRESHOLD) {
+            timerLabel.setForeground(Color.RED.darker());
         } else {
-            setBackground(new Color(0, 0, 0, 0));
-        }
-        repaint();
-    }
-
-    private void updateTimer() {
-        Duration elapsed = Duration.between(startTime, Instant.now());
-        long h = elapsed.toHours();
-        long m = elapsed.toMinutes() % 60;
-        long s = elapsed.getSeconds() % 60;
-
-        long totalMinutes = elapsed.toMinutes();
-        if (totalMinutes >= 20) {
-            timerLabel.setForeground(Color.GREEN);
-        } else if (totalMinutes >= 15) {
-            timerLabel.setForeground(Color.YELLOW);
-        } else {
-            timerLabel.setForeground(Color.RED);
-        }
-
-        timerLabel.setText(String.format("%02d:%02d:%02d", h, m, s));
-        repaint();
-    }
-
-    private void updateKillCount() {
-        killCountLabel.setText("Kills: " + killCount);
-    }
-
-    private void saveKillCount() {
-        File file = new File("killcount_belt_" + beltIndex + ".dat");
-        try (FileWriter fw = new FileWriter(file)) {
-            fw.write(Integer.toString(killCount));
-        } catch (IOException e) {
-            e.printStackTrace();
+            timerLabel.setForeground(Color.WHITE);
         }
     }
 
-    private void loadKillCount() {
-        File file = new File("killcount_belt_" + beltIndex + ".dat");
-        if (file.exists()) {
-            try (BufferedReader br = new BufferedReader(new FileReader(file))) {
-                killCount = Integer.parseInt(br.readLine());
-                updateKillCount();
-            } catch (IOException | NumberFormatException e) {
-                e.printStackTrace();
-            }
-        }
+    private void updateKillCountButton() {
+        killCountBtn.setText("Kills: " + killCount);
+    }
+
+    public void resetTimer() {
+        elapsedSeconds = 0;
+        updateTimerLabel();
+    }
+
+    public void setKillCount(int count) {
+        this.killCount = count;
+        updateKillCountButton();
+    }
+
+    // Allows App to handle external kill count updates (e.g. loading)
+    public int getKillCount() {
+        return killCount;
+    }
+
+    // Allows App to reset timer programmatically if needed
+    public void setElapsedSeconds(int seconds) {
+        this.elapsedSeconds = seconds;
+        updateTimerLabel();
+    }
+
+    // Callbacks for button actions
+    private ActionListener timerResetAction;
+    private ActionListener killCountAction;
+
+    public void setTimerResetAction(ActionListener action) {
+        this.timerResetAction = action;
+    }
+
+    public void setKillCountAction(ActionListener action) {
+        this.killCountAction = action;
+    }
+
+    private String formatTime(int seconds) {
+        int m = seconds / 60;
+        int s = seconds % 60;
+        return String.format("%02d:%02d", m, s);
     }
 }

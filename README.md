@@ -18,7 +18,7 @@ A lightweight, always-on-top overlay for tracking multiple ratting belt timers i
 
 ## Screenshot
 
-![Sample Screenshot](sample.PNG)
+![Sample Screenshot](sample.png)
 
 ## Getting Started
 
