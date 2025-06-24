@@ -92,4 +92,4 @@ Create a feature branch.
 
 Submit a pull request.
 
-HASH FOR EvETimer.jar fce350ad0cddec9bf4f40e65e224dfc08fd4459e9156764f69f2b1fafaf380e8
+HASH FOR EvETimer1.1a.jar 1759d410f30168c5de6567ccb14bce6561edccc077606288e11dc687d5f7981a
