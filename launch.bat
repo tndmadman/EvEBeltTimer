@@ -1,1 +1,1 @@
-java -jar evetimer1.1a.jar
+java -jar evetimer.jar
